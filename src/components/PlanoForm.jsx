@@ -13,13 +13,32 @@ export default function PlanoForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErro("");
     setPlano(null);
 
+    if (!tema || !faixaEtaria || !disciplina || !duracao) {
+      setErro("Todos os campos devem ser preenchidos para gerar o plano de aula.");
+      return; 
+    }
+    
+    
+    if (duracao.length < 2) { 
+        setErro("A Duração deve ser mais descritiva (ex: '50 minutos' ou '2 aulas').");
+        return; 
+    }
+   
+    
+    setLoading(true);
+
     try {
       
-      const resultado = await gerarPlano({ tema, faixa_etaria: faixaEtaria, disciplina, duracao });
+      
+      const resultado = await gerarPlano({ 
+          tema, 
+          faixa_etaria: faixaEtaria, 
+          disciplina, 
+          duracao 
+      });
 
       if (resultado.erro) {
         setErro(resultado.erro);
@@ -50,7 +69,7 @@ export default function PlanoForm() {
     } catch (err) {
       console.error("Erro no handleSubmit:", err);
       
-      setErro("Ocorreu um erro ao gerar o plano. Verifique o console para mais detalhes.");
+      setErro(err.message || "Ocorreu um erro desconhecido ao gerar o plano. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -63,17 +82,17 @@ export default function PlanoForm() {
         Gerador de Planos de Aula
       </h1>
       
-      
       <form onSubmit={handleSubmit} className="space-y-4"> 
         <input
           type="text"
           placeholder="Tema"
           value={tema}
           onChange={(e) => setTema(e.target.value)}
-          
           className="border p-3 w-full rounded-lg focus:ring-blue-500 focus:border-blue-500" 
-          required
+          required 
         />
+        
+        
         <input
           type="text"
           placeholder="Faixa Etária"
@@ -98,17 +117,17 @@ export default function PlanoForm() {
           className="border p-3 w-full rounded-lg focus:ring-blue-500 focus:border-blue-500" 
           required
         />
+        
         <button
           type="submit"
           disabled={loading}
-          
           className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg w-full transition duration-150 ease-in-out hover:bg-blue-700 disabled:opacity-50" 
         >
           {loading ? "Gerando..." : "Gerar Plano"}
         </button>
       </form>
 
-      
+     
       {erro && (
         <div className="mt-6 p-4 bg-red-100 text-red-700 border border-red-400 rounded-lg">
           <p className="font-bold">Houve um erro! 😔</p>
@@ -116,7 +135,6 @@ export default function PlanoForm() {
         </div>
       )}
 
-      
       {plano && (
         
         <div className="mt-6 p-5 border border-gray-200 rounded-lg bg-white shadow-lg">
