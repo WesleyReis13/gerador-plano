@@ -1,6 +1,6 @@
 export async function gerarPlano(inputs) {
 
- const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtYWdrZnVraXNkempqbWVkdGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NTI3MTAsImV4cCI6MjA3NjMyODcxMH0.T8XCLkuCb7IiXciU3KUTnlL4PxQlN_ZoiVtncoA5AWA"; 
+ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY; 
 
     try {
         const response = await fetch(
