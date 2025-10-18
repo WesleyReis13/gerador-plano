@@ -10,13 +10,13 @@ Este projeto implementa um sistema completo para **gerar planos de aula personal
 2. [Arquitetura e Stack](#2-arquitetura-e-stack)  
 3. [Decisões Técnicas Tomadas](#3-decisões-técnicas-tomadas)  
    - [3.1. Escolha do Modelo IA (Gemini 2.5 Flash)](#31-escolha-do-modelo-ia-gemini-25-flash)  
-   - [3.2. Arquitetura (Edge Function)](#32-arquitetura-serverless-edge-function-do-supabase)  
+   - [3.2. Arquitetura Serverless (Edge Function e Segurança)](#32-arquitetura-serverless-edge-function-e-segurança)  
    - [3.3. Tratamento de Saída JSON](#33-tratamento-de-saída-json)  
 4. [Desafios Encontrados e Soluções](#4-desafios-encontrados-e-soluções)  
 5. [Instruções de Setup](#5-instruções-de-setup)  
    - [5.1. Variáveis de Ambiente](#51-variáveis-de-ambiente)  
    - [5.2. Execução do Projeto](#52-execução-do-projeto)  
-6. [Modelagem de Dados (SQL)](#6-modelagem-de-dados-sql)  
+6. [Modelagem de Dados (SQL e RLS)](#6-modelagem-de-dados-sql-e-rls)  
 
 ---
 
@@ -27,14 +27,14 @@ O sistema gera um **plano de aula estruturado** com os seguintes componentes:
 - **Introdução lúdica:** Forma criativa e engajadora de apresentar o tema.  
 - **Objetivo de aprendizagem da BNCC:** Alinhado à Base Nacional Comum Curricular.  
 - **Passo a passo da atividade:** Roteiro detalhado para execução.  
-- **Rubrica de avaliação:** Critérios para a professora avaliar o aprendizado.  
+- **Rubrica de avaliação:** Critérios para a professora avaliar o aprendizado.
 
 ---
 
 ## 2. Arquitetura e Stack
 
-| **Componente** | **Tecnologia** | **Uso** |
-|----------------|----------------|---------|
+| Componente | Tecnologia | Uso |
+|-------------|-------------|-----|
 | **Frontend** | React (Hooks e Componentes) | Interface de entrada de dados e exibição do plano. |
 | **Backend / Serverless** | Supabase Edge Functions (Deno / TypeScript) | Lógica de comunicação segura com a Gemini API. |
 | **Banco de Dados** | Supabase (PostgreSQL) | Persistência dos planos de aula gerados. |
@@ -54,14 +54,13 @@ O modelo **Gemini 2.5 Flash** foi escolhido em detrimento do Gemini 2.5 Pro ou m
 
 ---
 
-### 3.2. Arquitetura Serverless (Edge Function do Supabase)
+### 3.2. Arquitetura Serverless (Edge Function e Segurança)
 
-O uso de uma **Edge Function** chamada `gerar-plano` foi uma decisão de **segurança e arquitetura** essencial:
+O uso de uma **Edge Function chamada `gerar-plano`** foi uma decisão de segurança e arquitetura essencial:
 
-- 🔒 **Ocultação da chave API:**  
-  A variável `GEMINI_API_KEY` é armazenada com segurança nas *Secrets* do Supabase e nunca exposta no frontend.  
-- 🌐 **CORS e segurança:**  
-  A Edge Function atua como um **proxy seguro**, evitando problemas de CORS e permitindo comunicação limpa com a Gemini API via Deno.
+- 🔒 **Ocultação da chave API:** A variável `GEMINI_API_KEY` é armazenada com segurança nas *Secrets* do Supabase e nunca é exposta no frontend.  
+- 🌐 **CORS e Proxy:** A Edge Function atua como um proxy seguro, evitando problemas de CORS e permitindo comunicação limpa com a Gemini API via Deno.  
+- 🧱 **Defesa em Profundidade (RLS):** O Row Level Security (RLS) foi ativado na tabela `planos_aula`, garantindo que apenas `INSERT` e `SELECT` sejam permitidos para o papel `anon`, mesmo que a chave pública seja exposta.
 
 ---
 
@@ -69,28 +68,28 @@ O uso de uma **Edge Function** chamada `gerar-plano` foi uma decisão de **segur
 
 Para garantir que a resposta da IA seja convertida corretamente em objeto JavaScript, foi implementada uma lógica de limpeza no arquivo `gemini.js`.
 
-- **Problema:**  
-  Modelos de linguagem frequentemente envolvem a saída JSON em blocos Markdown (```json ... ```).  
-- **Solução:**  
-  Uso de uma **Expressão Regular (Regex)** para limpar essas marcações:
+**Problema:**  
+Modelos de linguagem frequentemente envolvem a saída JSON em blocos Markdown (```json ... ```).
 
-  ```js
-  .replace(/```json\s*|```/g, '')
-  ```
+**Solução:**  
+Uso de uma expressão regular (Regex) para limpar essas marcações:
 
-  Isso garante que o `JSON.parse()` funcione corretamente, mesmo com saída formatada.
+```javascript
+.replace(/```json\s*|```/g, '')
+```
+
+Isso garante que o `JSON.parse()` funcione corretamente, mesmo com saída formatada.
 
 ---
 
 ## 4. Desafios Encontrados e Soluções
 
-O desenvolvimento da comunicação com a API REST do Gemini apresentou desafios significativos.
-
-| **Desafio** | **Solução Implementada** |
-|--------------|--------------------------|
-| **Autenticação e CORS (Inicial)** | Uso da Edge Function do Supabase. A requisição do frontend envia a `SUPABASE_ANON_KEY` via header de autorização. |
-| **Erros de Sintaxe da API (400 / 404)** | Simplificação extrema do payload — remoção de campos como `config`, `generationConfig` e `responseMimeType`. Apenas o corpo `contents` foi mantido. |
-| **Erro JSON não encontrado (500 lógico)** | Implementação da lógica de limpeza via Regex no `gemini.js`, garantindo o parse correto do JSON. |
+| Desafio | Solução Implementada |
+|----------|----------------------|
+| **Autenticação e CORS (Inicial)** | Uso da Edge Function do Supabase, que age como proxy seguro. A requisição do frontend usa a `SUPABASE_ANON_KEY` no cabeçalho de autorização. |
+| **Erros de Sintaxe da API (400 / 404)** | Simplificação extrema do payload, focando apenas no corpo `contents` e removendo configurações complexas. |
+| **Erro JSON não encontrado (500 lógico)** | Implementação da lógica de limpeza via Regex no `gemini.js`, garantindo o `JSON.parse()` correto. |
+| **Exibição de Negrito do Markdown** | Uso de `dangerouslySetInnerHTML` no React com uma Regex de substituição (`**texto**` → `<strong>texto</strong>`) para garantir a renderização correta do negrito no frontend. |
 
 ---
 
@@ -100,47 +99,52 @@ O desenvolvimento da comunicação com a API REST do Gemini apresentou desafios 
 
 As variáveis abaixo devem ser configuradas antes da execução:
 
-| **Variável** | **Uso** | **Fonte** |
-|---------------|----------|-----------|
+| Variável | Uso | Fonte |
+|-----------|-----|-------|
 | `VITE_SUPABASE_URL` | URL do seu projeto Supabase. | Painel do Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Chave pública (anon). | Painel do Supabase |
 | `(Edge Function) GEMINI_API_KEY` | Chave da API do Google Gemini. | Google AI Studio |
 
-> 💡 **Nota:**  
-> A variável `GEMINI_API_KEY` deve ser configurada **nas “Secrets” do Supabase**, não no `.env` local.
+💡 **Nota de Segurança:**  
+A variável `GEMINI_API_KEY` deve ser configurada nas *Secrets* do Supabase, **e não** no arquivo `.env` local, para manter o segredo seguro no lado do servidor.  
+O arquivo `.env` foi adicionado ao `.gitignore`.
 
 ---
 
 ### 5.2. Execução do Projeto
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/WesleyReis13/gerador-plano.git]
-   ```
-2. **Instale as dependências:**
-   ```bash
-   npm install
-   # ou
-   yarn install
-   ```
-3. **Execute o servidor de desenvolvimento:**
-   ```bash
-   npm run dev
-   # ou
-   yarn dev
-   ```
-4. O projeto estará acessível em:
-   ```
-   http://localhost:5173
-   ```
+Clone o repositório:
+
+```bash
+git clone https://github.com/WesleyReis13/gerador-plano.git
+```
+
+Instale as dependências:
+
+```bash
+npm install
+# ou
+yarn install
+```
+
+Execute o servidor de desenvolvimento:
+
+```bash
+npm run dev
+# ou
+yarn dev
+```
+
+O projeto estará acessível em:  
+👉 **http://localhost:5173**
 
 ---
 
-## 6. Modelagem de Dados (SQL)
+## 6. Modelagem de Dados (SQL e RLS)
 
-A estrutura do banco de dados consiste em uma **tabela única** chamada `planos_aula`, otimizada para armazenar os dados de entrada e a saída estruturada da IA.
+A estrutura do banco de dados consiste em uma tabela única chamada **`planos_aula`**, otimizada para armazenar os dados de entrada e a saída estruturada da IA.
 
-### 📜 Script SQL (`db/supabase_schema.sql`)
+### 📜 Script SQL Completo (`db/supabase_schema.sql`)
 
 ```sql
 CREATE TABLE planos_aula (
@@ -152,21 +156,34 @@ CREATE TABLE planos_aula (
   plano jsonb NOT NULL,
   created_at timestamp DEFAULT now()
 );
+
+ALTER TABLE public.planos_aula ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anon users can insert plans"
+ON public.planos_aula FOR INSERT
+TO anon WITH CHECK (true);
+
+CREATE POLICY "Anon users can view all plans"
+ON public.planos_aula FOR SELECT
+TO anon USING (true);
 ```
-
-### 🧱 Estrutura de Dados
-
-| **Campo** | **Tipo** | **Descrição** |
-|------------|-----------|---------------|
-| `id` | uuid | Chave primária. |
-| `tema` | text | Tema do plano (input do usuário). |
-| `faixa_etaria` | text | Faixa etária alvo. |
-| `disciplina` | text | Disciplina aplicada. |
-| `duracao` | text | Duração da atividade. |
-| `plano` | jsonb | Objeto JSON completo do plano gerado pela IA. |
-| `created_at` | timestamp | Data e hora da inserção. |
 
 ---
 
-📘 **Conclusão:**  
-O **Gerador de Planos de Aula com IA** é um projeto moderno que combina a **inteligência generativa do Gemini** com a **eficiência serverless do Supabase**, oferecendo uma solução prática, segura e escalável para professores e desenvolvedores.
+### 🧱 Estrutura de Dados
+
+| Campo | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | `uuid` | Chave primária. |
+| `tema` | `text` | Tema do plano (input do usuário). |
+| `faixa_etaria` | `text` | Faixa etária alvo. |
+| `disciplina` | `text` | Disciplina aplicada. |
+| `duracao` | `text` | Duração da atividade. |
+| `plano` | `jsonb` | Objeto JSON completo do plano gerado pela IA. |
+| `created_at` | `timestamp` | Data e hora da inserção. |
+
+---
+
+## 📘 Conclusão
+
+O **Gerador de Planos de Aula com IA** é um projeto moderno que combina a **inteligência generativa do Gemini** com a **eficiência serverless do Supabase**, oferecendo uma solução **prática, segura e escalável** para professores e desenvolvedores.
