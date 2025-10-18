@@ -16,6 +16,7 @@ export default function PlanoForm() {
     setErro("");
     setPlano(null);
 
+    
     if (!tema || !faixaEtaria || !disciplina || !duracao) {
       setErro("Todos os campos devem ser preenchidos para gerar o plano de aula.");
       return; 
@@ -26,7 +27,6 @@ export default function PlanoForm() {
         setErro("A Duração deve ser mais descritiva (ex: '50 minutos' ou '2 aulas').");
         return; 
     }
-   
     
     setLoading(true);
 
@@ -35,7 +35,7 @@ export default function PlanoForm() {
       
       const resultado = await gerarPlano({ 
           tema, 
-          faixa_etaria: faixaEtaria, 
+          faixa_etaria: faixaEtaria,
           disciplina, 
           duracao 
       });
@@ -62,6 +62,7 @@ export default function PlanoForm() {
         ]);
 
       if (error) {
+        
         console.error("Erro ao salvar no Supabase:", error);
       } else {
         console.log("Plano salvo com sucesso:", data);
@@ -88,11 +89,10 @@ export default function PlanoForm() {
           placeholder="Tema"
           value={tema}
           onChange={(e) => setTema(e.target.value)}
+          
           className="border p-3 w-full rounded-lg focus:ring-blue-500 focus:border-blue-500" 
           required 
         />
-        
-        
         <input
           type="text"
           placeholder="Faixa Etária"
@@ -121,13 +121,14 @@ export default function PlanoForm() {
         <button
           type="submit"
           disabled={loading}
+          
           className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg w-full transition duration-150 ease-in-out hover:bg-blue-700 disabled:opacity-50" 
         >
           {loading ? "Gerando..." : "Gerar Plano"}
         </button>
       </form>
 
-     
+      
       {erro && (
         <div className="mt-6 p-4 bg-red-100 text-red-700 border border-red-400 rounded-lg">
           <p className="font-bold">Houve um erro! 😔</p>
@@ -135,8 +136,8 @@ export default function PlanoForm() {
         </div>
       )}
 
+      
       {plano && (
-        
         <div className="mt-6 p-5 border border-gray-200 rounded-lg bg-white shadow-lg">
           <h2 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">Plano de Aula Gerado 🚀</h2>
           
@@ -149,7 +150,13 @@ export default function PlanoForm() {
             <h3 className="text-lg font-semibold mb-2">Passo a passo:</h3>
             <ul className="list-decimal list-outside ml-5 space-y-2">
               {plano.passo_a_passo.map((item, idx) => (
-                <li key={idx} className="text-gray-700">{item}</li>
+                
+                <li 
+                  key={idx} 
+                  className="text-gray-700"
+                  
+                  dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}
+                />
               ))}
             </ul>
           </div>
