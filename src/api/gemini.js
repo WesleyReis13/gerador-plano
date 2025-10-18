@@ -1,10 +1,13 @@
 export async function gerarPlano(inputs) {
 
- const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY; 
+ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;   
+ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+ 
+ const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/gerar-plano`;
 
     try {
         const response = await fetch(
-        "https://smagkfukisdzjjmedtcs.supabase.co/functions/v1/gerar-plano",
+        EDGE_FUNCTION_URL,
         {
         method: "POST",
         headers: { 
