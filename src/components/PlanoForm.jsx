@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { gerarPlano } from "../api/gemini";
+import { supabase } from "../api/supabase";
 
 export default function PlanoForm() {
   const [inputs, setInputs] = useState({
@@ -10,6 +11,7 @@ export default function PlanoForm() {
   });
   const [loading, setLoading] = useState(false);
   const [plano, setPlano] = useState(null);
+  const [mensagem, setMensagem] = useState("");
 
   function handleChange(e) {
     setInputs({ ...inputs, [e.target.name]: e.target.value });
@@ -18,10 +20,38 @@ export default function PlanoForm() {
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setMensagem("");
     setPlano(null);
 
+    // 1️⃣ Gera o plano com a IA
     const result = await gerarPlano(inputs);
+
+    if (result.erro) {
+      setMensagem(result.erro);
+      setLoading(false);
+      return;
+    }
+
     setPlano(result);
+
+    // 2️⃣ Salva no Supabase
+    const { error } = await supabase.from("planos_aula").insert([
+      {
+        tema: inputs.tema,
+        faixa_etaria: inputs.faixa_etaria,
+        disciplina: inputs.disciplina,
+        duracao: inputs.duracao,
+        plano: result,
+      },
+    ]);
+
+    if (error) {
+      console.error(error);
+      setMensagem("Erro ao salvar no banco.");
+    } else {
+      setMensagem("Plano salvo com sucesso!");
+    }
+
     setLoading(false);
   }
 
@@ -70,9 +100,19 @@ export default function PlanoForm() {
           disabled={loading}
           className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
         >
-          {loading ? "Gerando..." : "Gerar Plano"}
+          {loading ? "Gerando..." : "Gerar e Salvar Plano"}
         </button>
       </form>
+
+      {mensagem && (
+        <p
+          className={`mt-4 text-center ${
+            mensagem.includes("erro") ? "text-red-500" : "text-green-600"
+          }`}
+        >
+          {mensagem}
+        </p>
+      )}
 
       {plano && !plano.erro && (
         <div className="mt-6 border-t pt-4">
@@ -105,10 +145,6 @@ export default function PlanoForm() {
             </ul>
           </div>
         </div>
-      )}
-
-      {plano?.erro && (
-        <p className="text-red-500 mt-4 text-center">{plano.erro}</p>
       )}
     </div>
   );
