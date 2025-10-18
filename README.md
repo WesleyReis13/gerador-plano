@@ -1,16 +1,33 @@
-# React + Vite
+# 1. Escolha e Justificativa do Modelo de Inteligência Artificial
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Para a implementação do Gerador de Planos de Aula, foi escolhido o modelo **Gemini 2.5 Flash** do Google AI.
 
-Currently, two official plugins are available:
+## Modelo Escolhido: `gemini-2.5-flash`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+O modelo `gemini-2.5-flash` foi selecionado devido ao seu equilíbrio ideal entre **velocidade**, **custo-benefício** e **capacidade de raciocínio**, alinhado aos requisitos do projeto.
 
-## React Compiler
+## Justificativas Técnicas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+A escolha do `gemini-2.5-flash` se baseia nos seguintes pilares:
 
-## Expanding the ESLint configuration
+### 1. Velocidade e Latência (Performance)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+O **Flash** é o modelo mais rápido da família Gemini 2.5, otimizado para tarefas de inferência de alta velocidade.  
+Para uma aplicação frontend interativa, onde o usuário espera um retorno imediato ao clicar no botão "Gerar Plano", a **baixa latência** é crucial para garantir uma excelente **Experiência do Usuário (UX)**.
+
+### 2. Custo-Benefício (Eficiência)
+
+Como o projeto utiliza a **API do Gemini no tier gratuito**, o modelo Flash permite o processamento de um volume significativamente maior de requisições e tokens dentro dos limites do nível gratuito, em comparação com modelos mais robustos como o **Pro**.  
+Isso garante a **sustentabilidade da aplicação** em um ambiente de teste ou de baixo tráfego.
+
+### 3. Capacidade de Raciocínio Estruturado (Seguimento de Instruções)
+
+Embora seja o modelo mais leve, o Gemini 2.5 Flash mantém uma forte capacidade de **seguir instruções complexas e estruturadas**.  
+Isso foi fundamental para:
+
+- **Geração de Conteúdo Educacional**: Gerar a "Introdução lúdica", "Objetivo da BNCC" e "Rubrica de avaliação" com qualidade e relevância educacional.  
+- **Formato de Saída (JSON)**: O Flash é altamente capaz de aderir ao requisito de **saída JSON puro**. A capacidade do modelo de seguir as instruções do prompt para **formatar os dados corretamente** foi essencial para que o parsing no frontend funcionasse após a implementação da lógica de limpeza.
+
+---
+
+Em suma, o Gemini 2.5 Flash foi a escolha ideal por ser **rápido e econômico**, ao mesmo tempo em que demonstrou a **inteligência necessária** para realizar a tarefa de **estruturação de dados** e **criação de conteúdo**.
