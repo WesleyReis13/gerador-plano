@@ -1,69 +1,59 @@
 export async function gerarPlano(inputs) {
-  try {
-    // Prompt estruturado para JSON puro
-    const promptTexto = `
-Você é um especialista em educação infantil e ensino fundamental, com profundo conhecimento da BNCC. 
-Gere um plano de aula completo em JSON puro, sem Markdown ou títulos extras. 
-O formato deve ser exatamente este:
 
-{
-  "introducao_ludica": "...",
-  "objetivo_bncc": "...",
-  "passo_a_passo": ["..."],
-  "rubrica_avaliacao": ["..."]
-}
+ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtYWdrZnVraXNkempqbWVkdGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3NTI3MTAsImV4cCI6MjA3NjMyODcxMH0.T8XCLkuCb7IiXciU3KUTnlL4PxQlN_ZoiVtncoA5AWA"; 
 
-Informações do usuário:
-- Tema: ${inputs.tema}
-- Faixa etária: ${inputs.faixa_etaria}
-- Disciplina: ${inputs.disciplina}
-- Duração: ${inputs.duracao}
-`;
-
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" +
-        import.meta.env.VITE_GEMINI_API_KEY,
-      {
+    try {
+        const response = await fetch(
+        "https://smagkfukisdzjjmedtcs.supabase.co/functions/v1/gerar-plano",
+        {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // Estrutura exigida pela Gemini API
-          instances: [
-            {
-              input: promptTexto,
-            },
-          ],
-        }),
-      }
-    );
+        headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify(inputs),
+                }
+            );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Erro da API Gemini:", response.status, errorText);
-      throw new Error(`Erro HTTP: ${response.status}`);
-    }
+    const errorText = await response.text();
+    console.error("Erro da Edge Function:", response.status, errorText);
+    throw new Error(`Erro HTTP: ${response.status}`);
+ }
 
-    const data = await response.json();
-
-    // Extrai o texto da IA
-    let texto = data?.candidates?.[0]?.content?.[0]?.text;
-    if (!texto) throw new Error("A resposta da IA veio vazia");
-
-    // Remove espaços e quebras de linha no começo e fim
+     const data = await response.json();
+    
+    
+    let texto = data?.text || ""; 
     texto = texto.trim();
 
-    // Tenta parsear diretamente
-    try {
-      const plano = JSON.parse(texto);
-      return plano;
-    } catch {
-      // Se falhar, tenta extrair JSON dentro do texto (caso IA insira algum comentário)
-      const match = texto.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("JSON não encontrado no texto retornado");
-      return JSON.parse(match[0]);
+    if (texto === "") {
+        
+        throw new Error("A API Gemini não retornou nenhum texto.");
     }
-  } catch (err) {
-    console.error("Erro ao converter JSON:", err);
-    return { erro: err.message };
-  }
+
+    try {
+        
+        return JSON.parse(texto);
+    } catch (e) {
+        
+        
+        
+        let cleanedText = texto.replace(/```json\s*|```/g, '').trim();
+
+        try {
+            
+            return JSON.parse(cleanedText);
+        } catch (error) {
+            
+            console.error("Texto Bruto (Com falha de JSON):", texto);
+            throw new Error("JSON inválido ou formato inesperado no texto retornado.");
+        }
+    }
+
+     } catch (err) {
+     console.error("Erro ao converter JSON:", err);
+    
+     throw new Error(err.message || "Erro desconhecido ao gerar o plano.");
+  }
 }
