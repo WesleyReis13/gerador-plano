@@ -1,114 +1,128 @@
 import { useState } from "react";
 import { gerarPlano } from "../api/gemini";
+import { supabase } from "../api/supabase";
 
 export default function PlanoForm() {
-  const [inputs, setInputs] = useState({
-    tema: "",
-    faixa_etaria: "",
-    disciplina: "",
-    duracao: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const [tema, setTema] = useState("");
+  const [faixaEtaria, setFaixaEtaria] = useState("");
+  const [disciplina, setDisciplina] = useState("");
+  const [duracao, setDuracao] = useState("");
   const [plano, setPlano] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
 
-  function handleChange(e) {
-    setInputs({ ...inputs, [e.target.name]: e.target.value });
-  }
-
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErro("");
     setPlano(null);
 
-    const result = await gerarPlano(inputs);
-    setPlano(result);
-    setLoading(false);
-  }
+    try {
+      
+      const resultado = await gerarPlano({ tema, faixa_etaria: faixaEtaria, disciplina, duracao });
+
+      if (resultado.erro) {
+        setErro(resultado.erro);
+        return;
+      }
+
+      setPlano(resultado);
+
+      
+      const { data, error } = await supabase
+        .from("planos_aula")
+        .insert([
+          {
+            tema,
+            faixa_etaria: faixaEtaria,
+            disciplina,
+            duracao,
+            plano: resultado,
+          },
+        ]);
+
+      if (error) {
+        console.error("Erro ao salvar no Supabase:", error);
+      } else {
+        console.log("Plano salvo com sucesso:", data);
+      }
+    } catch (err) {
+      console.error("Erro no handleSubmit:", err);
+      setErro("Ocorreu um erro ao gerar o plano. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-white shadow-lg rounded-2xl">
-      <h1 className="text-2xl font-bold mb-4 text-center text-blue-600">
-        🧠 Gerador de Plano de Aula com IA
-      </h1>
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <div className="max-w-3xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Gerador de Planos de Aula</h1>
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input
-          name="tema"
-          placeholder="Tema da aula"
-          value={inputs.tema}
-          onChange={handleChange}
+          type="text"
+          placeholder="Tema"
+          value={tema}
+          onChange={(e) => setTema(e.target.value)}
+          className="border p-2 w-full"
           required
-          className="border p-2 rounded"
         />
         <input
-          name="faixa_etaria"
-          placeholder="Faixa etária (ex: 8 a 9 anos)"
-          value={inputs.faixa_etaria}
-          onChange={handleChange}
+          type="text"
+          placeholder="Faixa Etária"
+          value={faixaEtaria}
+          onChange={(e) => setFaixaEtaria(e.target.value)}
+          className="border p-2 w-full"
           required
-          className="border p-2 rounded"
         />
         <input
-          name="disciplina"
+          type="text"
           placeholder="Disciplina"
-          value={inputs.disciplina}
-          onChange={handleChange}
+          value={disciplina}
+          onChange={(e) => setDisciplina(e.target.value)}
+          className="border p-2 w-full"
           required
-          className="border p-2 rounded"
         />
         <input
-          name="duracao"
-          placeholder="Duração (ex: 45 minutos)"
-          value={inputs.duracao}
-          onChange={handleChange}
+          type="text"
+          placeholder="Duração"
+          value={duracao}
+          onChange={(e) => setDuracao(e.target.value)}
+          className="border p-2 w-full"
           required
-          className="border p-2 rounded"
         />
-
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
         >
           {loading ? "Gerando..." : "Gerar Plano"}
         </button>
       </form>
 
-      {plano && !plano.erro && (
-        <div className="mt-6 border-t pt-4">
-          <h2 className="text-xl font-semibold mb-2 text-gray-800">
-            Plano Gerado
-          </h2>
-
-          <p>
-            <strong>Introdução lúdica:</strong> {plano.introducao_ludica}
-          </p>
-          <p className="mt-2">
-            <strong>Objetivo BNCC:</strong> {plano.objetivo_bncc}
-          </p>
-
-          <div className="mt-2">
-            <strong>Passo a passo:</strong>
-            <ul className="list-disc ml-6">
-              {plano.passo_a_passo?.map((p, i) => (
-                <li key={i}>{p}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="mt-2">
-            <strong>Rubrica de Avaliação:</strong>
-            <ul className="list-disc ml-6">
-              {plano.rubrica_avaliacao?.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
-            </ul>
-          </div>
+      {erro && (
+        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded">
+          Erro: {erro}
         </div>
       )}
 
-      {plano?.erro && (
-        <p className="text-red-500 mt-4 text-center">{plano.erro}</p>
+      {plano && (
+        <div className="mt-4 p-3 border rounded bg-gray-50">
+          <h2 className="text-xl font-semibold mb-2">Plano Gerado:</h2>
+          <p><strong>Introdução lúdica:</strong> {plano.introducao_ludica}</p>
+          <p><strong>Objetivo BNCC:</strong> {plano.objetivo_bncc}</p>
+          <p><strong>Passo a passo:</strong></p>
+          <ul className="list-disc list-inside">
+            {plano.passo_a_passo.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+          <p><strong>Rubrica de avaliação:</strong></p>
+          <ul className="list-disc list-inside">
+            {plano.rubrica_avaliacao.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
