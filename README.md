@@ -186,4 +186,4 @@ TO anon USING (true);
 
 ## 📘 Conclusão
 
-O **Gerador de Planos de Aula com IA** é um projeto moderno que combina a **inteligência generativa do Gemini** com a **eficiência serverless do Supabase**, oferecendo uma solução **prática, segura e escalável** para professores e desenvolvedores.
+O **Gerador de Planos de Aula com IA** é um projeto moderno que combina a **inteligência generativa do Gemini** com a **eficiência serverless do Supabase**, oferecendo uma solução **prática, segura e escalável** para professores e desenvolvedores
